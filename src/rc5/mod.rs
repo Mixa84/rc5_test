@@ -46,17 +46,17 @@ pub struct RC5 {
 }
 
 impl RC5Config {
-    pub fn new(word_size : u8, number_of_rounds : u8, bytes_in_key : u8) -> Result<Self, RC5Error> {
-        if word_size != 32 {
+    pub fn new(word_size : &u8, number_of_rounds : &u8, bytes_in_key : &u8) -> Result<Self, RC5Error> {
+        if *word_size != 32 {
             return Err(RC5Error::UnsupportedWordSize);
         }
         let word_in_key = bytes_in_key / (word_size / 8);
         let bytes_in_word = (word_size / 8) as usize;
 
         Ok(Self {
-            word_size,
-            number_of_rounds,
-            bytes_in_key,
+            word_size : *word_size ,
+            number_of_rounds : *number_of_rounds ,
+            bytes_in_key : *bytes_in_key ,
             word_in_key,
             bytes_in_word,
         })
@@ -107,7 +107,7 @@ impl RC5 {
         Ok(())
     }
 
-    pub fn encrypt(& self, plain_text : &Vec<u8>) -> Result<Vec<u8>, RC5Error> {
+    pub fn encrypt(& self, plain_text : Vec<u8>) -> Result<Vec<u8>, RC5Error> {
         if plain_text.len() != self.config.bytes_in_word * 2 {
             return Err(RC5Error::InvalidPlainTextSize);
         }
@@ -127,7 +127,7 @@ impl RC5 {
         Ok(cipher_text)
     }
 
-    pub fn decrypt(& self, cipher_text : &Vec<u8>) -> Result<Vec<u8>, RC5Error> {
+    pub fn decrypt(& self, cipher_text : Vec<u8>) -> Result<Vec<u8>, RC5Error> {
         if cipher_text.len() != self.config.bytes_in_word * 2 {
             return Err(RC5Error::InvalidPlainTextSize);
         }
@@ -136,7 +136,6 @@ impl RC5 {
         let mut b = u32::from_ne_bytes(cipher_text[self.config.bytes_in_word..cipher_text.len()].try_into().unwrap());
 
         for idx in (1..(self.config.number_of_rounds + 1) as usize).rev() {
-
             b = b.wrapping_sub(self.table[2 * idx + 1]).rotate_right(a) ^ a;
             a = a.wrapping_sub(self.table[2 * idx]).rotate_right(b) ^ b;
         }
@@ -153,7 +152,7 @@ mod tests {
 	use super::*;
 
     fn setup_tests(key : Vec<u8>, number_of_rounds : u8, bytes_in_key : u8) -> Result<RC5, RC5Error> {
-        let config = RC5Config::new(32, number_of_rounds, bytes_in_key)?;
+        let config = RC5Config::new(&32, &number_of_rounds, &bytes_in_key)?;
         let rc5 = RC5::new(config, key)?;
 
         Ok(rc5)
@@ -167,11 +166,12 @@ mod tests {
 
         let rc5 = setup_tests(key, 12, 16)?;
 
-        let res = rc5.encrypt(&pt)?;
+        let res = rc5.encrypt(pt)?;
 
         assert!(&ct[..] == &res[..]);
 
-        let res = rc5.decrypt(&ct)?;
+    	let pt  = vec![0xEA, 0x02, 0x47, 0x14, 0xAD, 0x5C, 0x4D, 0x84];
+        let res = rc5.decrypt(ct)?;
 
         assert!(&pt[..] == &res[..]);
 
@@ -186,11 +186,12 @@ mod tests {
 
         let rc5 = setup_tests(key, 12, 16)?;
 
-        let res = rc5.encrypt(&pt)?;
+        let res = rc5.encrypt(pt)?;
 
         assert!(&ct[..] == &res[..]);
 
-        let res = rc5.decrypt(&ct)?;
+    	let pt  = vec![0x21, 0xA5, 0xDB, 0xEE, 0x15, 0x4B, 0x8F, 0x6D];
+        let res = rc5.decrypt(ct)?;
 
         assert!(&pt[..] == &res[..]);
 
@@ -205,11 +206,12 @@ mod tests {
 
         let rc5 = setup_tests(key, 20, 16)?;
 
-        let res = rc5.encrypt(&pt)?;
+        let res = rc5.encrypt(pt)?;
 
         assert!(&ct[..] == &res[..]);
 
-        let res = rc5.decrypt(&ct)?;
+    	let pt  = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07];
+        let res = rc5.decrypt(ct)?;
 
         assert!(&pt[..] == &res[..]);
 
@@ -218,10 +220,10 @@ mod tests {
 
     #[test]
     fn fail_on_config() {
-        assert_eq!(RC5Error::UnsupportedWordSize, RC5Config::new(64, 12, 16).unwrap_err());
-        assert_eq!(RC5Error::UnsupportedWordSize, RC5Config::new(16, 12, 16).unwrap_err());
+        assert_eq!(RC5Error::UnsupportedWordSize, RC5Config::new(&64, &12, &16).unwrap_err());
+        assert_eq!(RC5Error::UnsupportedWordSize, RC5Config::new(&16, &12, &16).unwrap_err());
 
-        let config = RC5Config::new(32, 12, 16).unwrap();
+        let config = RC5Config::new(&32, &12, &16).unwrap();
 
     	let key15 = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E];
     	let key17 = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10];
@@ -233,7 +235,11 @@ mod tests {
         let rc5 = RC5::new(config.clone(), key).unwrap();
         let phrase : Vec<u8> = Vec::new();
 
-        assert_eq!(RC5Error::InvalidPlainTextSize, rc5.encrypt(&phrase).unwrap_err());
-        assert_eq!(RC5Error::InvalidPlainTextSize, rc5.decrypt(&phrase).unwrap_err());
+        assert_eq!(RC5Error::InvalidPlainTextSize, rc5.encrypt(phrase).unwrap_err());
+
+        let phrase = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06];
+
+        assert_eq!(RC5Error::InvalidPlainTextSize, rc5.encrypt(phrase).unwrap_err());
+
     }
 }
