@@ -11,7 +11,7 @@ const BYTES_IN_KEY: u8 = 16;
  *
  */
 fn encode(key: Vec<u8>, plain_text: Vec<u8>) -> Vec<u8> {
-	let config = match rc5::RC5Config::new(&WORD_SIZE, &NUMBER_OF_ROUNDS, &BYTES_IN_KEY) {
+	let config = match rc5::config::RC5Config::new(&WORD_SIZE, &NUMBER_OF_ROUNDS, &BYTES_IN_KEY) {
 		Ok(res) => res,
 		Err(e) => panic!("Error: {}", e),
 	};
@@ -32,7 +32,7 @@ fn encode(key: Vec<u8>, plain_text: Vec<u8>) -> Vec<u8> {
  *
  */
 fn decode(key: Vec<u8>, cipher_text: Vec<u8>) -> Vec<u8> {
-	let config = match rc5::RC5Config::new(&WORD_SIZE, &NUMBER_OF_ROUNDS, &BYTES_IN_KEY) {
+	let config = match rc5::config::RC5Config::new(&WORD_SIZE, &NUMBER_OF_ROUNDS, &BYTES_IN_KEY) {
 		Ok(res) => res,
 		Err(e) => panic!("Error: {}", e),
 	};
