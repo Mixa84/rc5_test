@@ -28,9 +28,9 @@ fn encode(key: Vec<u8>, plain_text: Vec<u8>) -> Result<Vec<u8>> {
 fn decode(key: Vec<u8>, cipher_text: Vec<u8>) -> Result<Vec<u8>> {
 	let config = rc5::config::RC5Config::new(&WORD_SIZE, &NUMBER_OF_ROUNDS, &BYTES_IN_KEY)?;
 	let rc5 = RC5::new(config, key)?;
-	let cypher_text = rc5.decrypt(cipher_text)?;
+	let plain_text = rc5.decrypt(cipher_text)?;
 
-	Ok(cypher_text)
+	Ok(plain_text)
 }
 
 #[cfg(test)]
